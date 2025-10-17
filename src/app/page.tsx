@@ -5,9 +5,9 @@ import { motion, useScroll, useTransform } from "framer-motion";
 import dynamic from "next/dynamic";
 import Lenis from "lenis";
 import { Canvas } from "@react-three/fiber";
-import { Float, Html, OrbitControls } from "@react-three/drei";
+import { Float, OrbitControls } from "@react-three/drei";
 
-// ✅ Render Spline *only* on the client to avoid hydration mismatches
+// ✅ Render Spline only on client
 const Spline = dynamic(() => import("@splinetool/react-spline"), { ssr: false });
 
 // ⤵️ Replace with your real Spline scene URL (must end with `/scene.splinecode`)
@@ -15,21 +15,15 @@ const SPLINE_SCENE_URL =
   "https://prod.spline.design/YOUR-REAL-SCENE-ID/scene.splinecode";
 
 export default function RochesterGingerLanding() {
-  // Smooth scrolling (client-only)
+  // Smooth scrolling
   useEffect(() => {
-    const lenis = new Lenis({
-      lerp: 0.1,
-      smoothWheel: true,
-      // syncTouch: true, // <- optional, only if your installed lenis version supports it
-    });
-
+    const lenis = new Lenis({ lerp: 0.1, smoothWheel: true });
     let rafId = 0;
-    const raf = (time: number) => {
-      lenis.raf(time);
+    const raf = (t: number) => {
+      lenis.raf(t);
       rafId = requestAnimationFrame(raf);
     };
     rafId = requestAnimationFrame(raf);
-
     return () => {
       cancelAnimationFrame(rafId);
       lenis.destroy();
@@ -40,12 +34,12 @@ export default function RochesterGingerLanding() {
     <main className="min-h-screen bg-[radial-gradient(ellipse_at_top,_#0b0f0d,_#050607)] text-zinc-200 selection:bg-amber-300/30 selection:text-amber-100">
       <BackgroundGlow />
       <Navbar />
-      <Hero3D />
-      <AboutSection />
+      <Hero3D />            {/* ← reverted to your original, text in SRB */}
+      <AboutSection />      {/* centered, no “Our Story” heading */}
       <IngredientsSection />
       <TastingNotesSection />
       <ReviewsSection />
-      <ShopSection />
+      <ShopSection />       {/* no prices, no cart buttons */}
       <Footer />
     </main>
   );
@@ -64,27 +58,14 @@ function Navbar() {
               </span>
             </div>
             <div className="hidden md:flex items-center gap-8 text-sm text-zinc-200/90">
-              <a href="#home" className="hover:text-amber-200">
-                Home
-              </a>
-              <a href="#about" className="hover:text-amber-200">
-                About
-              </a>
-              <a href="#ingredients" className="hover:text-amber-200">
-                Ingredients
-              </a>
-              <a href="#reviews" className="hover:text-amber-200">
-                Reviews
-              </a>
+              <a href="#home" className="hover:text-amber-200">Početna</a>
+              <a href="#about" className="hover:text-amber-200">Priča</a>
+              <a href="#ingredients" className="hover:text-amber-200">Sastojci</a>
+              <a href="#reviews" className="hover:text-amber-200">Utisci</a>
+              <a href="#shop" className="hover:text-amber-200">Ponuda</a>
             </div>
-            <div className="flex items-center gap-3">
-              <a
-                href="#shop"
-                className="group rounded-xl bg-gradient-to-br from-amber-600 to-amber-500 px-4 py-2 text-sm font-medium text-zinc-900 shadow-lg shadow-amber-900/30 transition hover:opacity-90"
-              >
-                Shop
-              </a>
-            </div>
+            {/* kept minimal right side (no CTA button) */}
+            <div className="flex items-center gap-3" />
           </nav>
         </div>
       </div>
@@ -92,17 +73,19 @@ function Navbar() {
   );
 }
 
+/** --------------------------
+ *  HERO — original layout restored
+ *  (only copy translated to Serbian)
+ *  -------------------------- */
 function Hero3D() {
   const containerRef = useRef<HTMLDivElement>(null);
   const { scrollY } = useScroll({ target: containerRef });
   const y = useTransform(scrollY, [0, 400], [0, 80]);
   const scale = useTransform(scrollY, [0, 400], [1, 0.96]);
 
-  // Gate 3D/Spline until after mount to avoid SSR/CSR diffs
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
-  // Basic guard to avoid loading the known placeholder
   const isValidSplineUrl =
     typeof SPLINE_SCENE_URL === "string" &&
     SPLINE_SCENE_URL.endsWith("/scene.splinecode") &&
@@ -125,7 +108,6 @@ function Hero3D() {
           {mounted && isValidSplineUrl ? (
             <Spline scene={SPLINE_SCENE_URL} />
           ) : (
-            // Fallback skeleton to preserve layout
             <div className="h-full w-full bg-gradient-to-b from-emerald-900/30 via-transparent to-amber-900/20" />
           )}
         </div>
@@ -140,7 +122,7 @@ function Hero3D() {
         />
       </motion.div>
 
-      {/* Content overlay */}
+      {/* Content overlay — same spacing as your original */}
       <div className="relative z-10 mx-auto flex min-h-[100svh] max-w-7xl items-center px-4 pt-28 sm:px-6 lg:px-8">
         <div className="max-w-2xl">
           <motion.h1
@@ -149,9 +131,9 @@ function Hero3D() {
             transition={{ duration: 0.8, ease: "easeOut" }}
             className="font-serif text-4xl sm:text-5xl md:text-6xl leading-tight text-amber-100 drop-shadow-[0_1px_0_rgba(0,0,0,0.6)]"
           >
-            Rochester Ginger: {" "}
-            <span className="text-amber-300">A Non-Alcoholic Elixir</span> of
-            Ginger & Spice
+            Rochester Ginger:{" "}
+            <span className="text-amber-300">bezalkoholni eliksir</span>{" "}
+            đumbira i začina
           </motion.h1>
           <motion.p
             initial={{ opacity: 0, y: 20 }}
@@ -159,8 +141,8 @@ function Hero3D() {
             transition={{ delay: 0.2, duration: 0.8, ease: "easeOut" }}
             className="mt-5 text-base sm:text-lg text-zinc-200/90"
           >
-            Freshly fired ginger warmth, citrus lift, and heritage
-            craft—bottled for modern rituals.
+            Toplina sveže „zapaljenog” đumbira, citrusni lift i nasleđe zanata —
+            flaširano za moderne rituale.
           </motion.p>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -172,19 +154,19 @@ function Hero3D() {
               href="#about"
               className="rounded-xl bg-white/10 px-5 py-3 text-sm font-medium text-amber-100 backdrop-blur-md ring-1 ring-white/20 hover:bg-white/15"
             >
-              Discover More
+              Saznaj više
             </a>
             <a
               href="#shop"
               className="rounded-xl bg-gradient-to-br from-amber-600 to-amber-500 px-5 py-3 text-sm font-semibold text-zinc-900 shadow-xl shadow-amber-900/30 hover:opacity-90"
             >
-              Buy Now
+              Kupi sada
             </a>
           </motion.div>
         </div>
       </div>
 
-      {/* Glass card with quick facts */}
+      {/* Glass card with quick facts — unchanged */}
       <motion.div
         initial={{ opacity: 0, y: 30 }}
         whileInView={{ opacity: 1, y: 0 }}
@@ -194,10 +176,10 @@ function Hero3D() {
       >
         <dl className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 text-sm">
           {[
-            ["Heritage", "Dickensian recipe"],
-            ["Profile", "Ginger • Spice • Citrus"],
-            ["Spirit", "0.0% Alcohol"],
-            ["Craft", "Small-batch brewed"],
+            ["Nasleđe", "Dickensov recept"],
+            ["Profil", "Đumbir • Začini • Citrus"],
+            ["Alkohol", "0.0%"],
+            ["Zanat", "Male serije"],
           ].map(([k, v]) => (
             <div key={k}>
               <dt className="text-zinc-400">{k}</dt>
@@ -211,27 +193,30 @@ function Hero3D() {
 }
 
 function AboutSection() {
+  // heading removed; text centered both axes
   return (
-    <Section id="about" title="Our Story" kicker="Since 1870 (in spirit)">
+    <section id="about" className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-20">
       <div className="grid gap-8 md:grid-cols-2">
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-xl shadow-xl shadow-black/30">
-          <p className="text-zinc-300">
-            Born from a Victorian tradition and affectionately called a
-            “Dickensian recipe,” Rochester Ginger is crafted to deliver the
-            rousing warmth of ginger with layered botanicals—without alcohol. We
-            honour time: steeping, warming, and clarifying to achieve a clarity
-            of flavour that feels both nostalgic and strikingly modern.
-          </p>
-          <p className="mt-4 text-zinc-300">
-            Our process embraces real ginger root and natural botanicals,
-            capturing the lively heat, soft sweetness, and aromatic lift that
-            made the original English ginger elixirs beloved in winter markets
-            and summer picnics alike.
-          </p>
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-xl shadow-xl shadow-black/30 min-h-[320px] flex items-center justify-center">
+          <div className="max-w-prose text-center">
+            <p className="text-zinc-300">
+              Rođen iz viktorijanske tradicije i od milošte nazvan „dickensov
+              recept”, Rochester Ginger je spravljen da donese pokretnu toplinu
+              đumbira sa slojevitim biljem — bez alkohola. Poštujemo vreme:
+              potapanje, zagrevanje i bistrenje kako bismo postigli jasnoću
+              ukusa koja deluje i nostalgično i iznenađujuće moderno.
+            </p>
+            <p className="mt-4 text-zinc-300">
+              Proces se oslanja na pravi koren đumbira i prirodne biljke,
+              hvatajući živu toplotu, meku slast i aromatični lift koji su
+              učinili engleske eliksire od đumbira voljenim i na zimskim
+              pijacama i na letnjim piknicima.
+            </p>
+          </div>
         </div>
         <AboutCanvasCard />
       </div>
-    </Section>
+    </section>
   );
 }
 
@@ -248,19 +233,14 @@ function AboutCanvasCard() {
             <Float speed={1.2} rotationIntensity={0.6} floatIntensity={0.8}>
               <GingerKnot />
             </Float>
-            <OrbitControls
-              enableZoom={false}
-              enablePan={false}
-              autoRotate
-              autoRotateSpeed={0.6}
-            />
+            <OrbitControls enableZoom={false} enablePan={false} autoRotate autoRotateSpeed={0.6} />
           </Canvas>
         ) : (
           <div className="h-full w-full bg-gradient-to-tr from-zinc-900/30 to-amber-900/10" />
         )}
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/10" />
         <div className="absolute bottom-3 left-3 rounded-lg bg-black/30 px-3 py-1.5 text-xs text-amber-100 backdrop-blur-md ring-1 ring-white/10">
-          Live 3D: Ginger Knot
+          3D uživo: Ginger Knot
         </div>
       </div>
     </div>
@@ -287,34 +267,18 @@ function GingerKnot() {
 
 function IngredientsSection() {
   return (
-    <Section id="ingredients" title="Ingredients & Process" kicker="Rooted in nature">
+    <Section id="ingredients" title="Sastojci i proces" kicker="Ukorenjeno u prirodi">
       <div className="grid gap-8 lg:grid-cols-[1.2fr_0.8fr]">
         <div className="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-xl shadow-xl shadow-black/30">
           <ul className="space-y-3 text-zinc-300">
-            <li>
-              <span className="text-amber-200">•</span> Fresh ginger root
-              infusion for bold heat
-            </li>
-            <li>
-              <span className="text-amber-200">•</span> Lemon peel & citrus oils
-              for lift
-            </li>
-            <li>
-              <span className="text-amber-200">•</span> Warming spices: clove,
-              cinnamon, cardamom
-            </li>
-            <li>
-              <span className="text-amber-200">•</span> Cane sugar
-              balance—never cloying
-            </li>
-            <li>
-              <span className="text-amber-200">•</span> Cold-filtered clarity
-              and a long, clean finish
-            </li>
+            <li><span className="text-amber-2 00">•</span> Infuzija svežeg korena đumbira za odlučnu toplinu</li>
+            <li><span className="text-amber-200">•</span> Kora limuna i citrusna ulja za podizanje</li>
+            <li><span className="text-amber-200">•</span> Grejući začini: karanfilić, cimet, kardamom</li>
+            <li><span className="text-amber-200">•</span> Trska šećer za balans — nikad preslatko</li>
+            <li><span className="text-amber-200">•</span> Prirodni talog kao dokaz autentičnosti i čist završetak</li>
           </ul>
           <p className="mt-4 text-zinc-400 text-sm">
-            We brew in small batches and clarify low and slow. Expect a natural
-            sediment—proof you’re tasting the real thing.
+            Kuvamo u malim serijama i bistrimo polako. Prirodni talog je znak da pijete stvarnu stvar.
           </p>
         </div>
         <IngredientsCanvasCard />
@@ -342,7 +306,7 @@ function IngredientsCanvasCard() {
         )}
       </div>
       <div className="px-5 py-4 text-sm text-zinc-300">
-        Micro-3D: Ginger & botanicals as living icons.
+        Mikro-3D: đumbir i botanika kao živi simboli.
       </div>
     </div>
   );
@@ -369,33 +333,21 @@ function GingerRootIcon() {
 
 function TastingNotesSection() {
   return (
-    <Section id="notes" title="Tasting Notes & Benefits" kicker="Warmth you can feel">
+    <Section id="notes" title="Note ukusa i benefiti" kicker="Toplina koju možeš da osetiš">
       <div className="grid gap-8 md:grid-cols-3">
         {[
-          {
-            title: "Spiced Heat",
-            copy:
-              "Immediate ginger fire balanced by clove and cinnamon; vibrant without harshness.",
-          },
-          {
-            title: "Citrus Lift",
-            copy:
-              "Lemon zest aromatics brighten the mid-palate; a crisp, refreshing arc.",
-          },
-          {
-            title: "Clean Finish",
-            copy:
-              "Light sweetness gives way to a long, warming finish that invites another sip.",
-          },
+          { title: "Začinska toplota", copy: "Trenutni „vatreni” đumbir izbalansiran karanfilićem i cimetom; živ, ali nežan." },
+          { title: "Citrusni lift", copy: "Aromatika korice limuna osvetljava sredinu ukusa; hrskavo i osvežavajuće." },
+          { title: "Čist završetak", copy: "Lagana slast prelazi u dugu, grejuću završnicu koja zove na još jedan gutljaj." },
         ].map((t) => (
           <GlassCard key={t.title} title={t.title} copy={t.copy} />
         ))}
       </div>
       <div className="mt-6 grid gap-4 sm:grid-cols-2 text-sm text-zinc-300">
-        <BenefitTag>Non-alcoholic (0.0%)</BenefitTag>
-        <BenefitTag>Real ginger infusion</BenefitTag>
-        <BenefitTag>Serve neat, over ice, or as a mixer</BenefitTag>
-        <BenefitTag>Vegan friendly</BenefitTag>
+        <BenefitTag>Bez alkohola (0.0%)</BenefitTag>
+        <BenefitTag>Prava infuzija đumbira</BenefitTag>
+        <BenefitTag>Serviraj čist, sa ledom ili kao mikser</BenefitTag>
+        <BenefitTag>Prikladno za vegane</BenefitTag>
       </div>
     </Section>
   );
@@ -429,23 +381,23 @@ function ReviewsSection() {
   const reviews = [
     {
       quote:
-        "A sophisticated ginger kick—warming yet refreshingly clean. My winter and summer staple.",
-      author: "Anya, London",
+        "Sofisticirani đumbirovski udar — greje, a ostaje osvežavajuće čist. Moj izbor i zimi i leti.",
+      author: "Anja, London",
     },
     {
       quote:
-        "Complex, adult, and alcohol-free. Gorgeous with soda and a lemon twist.",
-      author: "Marco, Milano",
+        "Kompleksno, za odraste, a bez alkohola. Predivno sa sodom i kriškom limuna.",
+      author: "Marko, Milano",
     },
     {
       quote:
-        "Tastes like heritage with modern polish—spice, citrus, and a real lingering glow.",
-      author: "Jelena, Belgrade",
+        "Ukus nasleđa sa modernim sjajem — začin, citrus i stvarni, dug topli žar.",
+      author: "Jelena, Beograd",
     },
   ];
 
   return (
-    <Section id="reviews" title="Testimonials" kicker="What people say">
+    <Section id="reviews" title="Utisci" kicker="Šta ljudi kažu">
       <div className="grid gap-6 md:grid-cols-3">
         {reviews.map((r, i) => (
           <motion.blockquote
@@ -467,14 +419,13 @@ function ReviewsSection() {
 
 function ShopSection() {
   const items = [
-  { title: "Rochester Ginger 750ml", price: "€12.90", badge: "Best Seller", image: "/1.png" },
-  { title: "Rochester Ginger — 4 Pack", price: "€45.00", badge: "Bundle", image: "/2.png" },
-  { title: "Rochester Ginger — 12 Pack", price: "€120.00", badge: "Trade", image: "/3.png" },
-];
-
+    { title: "Rochester Ginger 750ml", badge: "Najtraženije", image: "/1.png" },
+    { title: "Rochester Ginger — 4 pakovanja", badge: "Paket", image: "/2.png" },
+    { title: "Rochester Ginger — 12 pakovanja", badge: "Za ugostiteljstvo", image: "/3.png" },
+  ];
 
   return (
-    <Section id="shop" title="Shop" kicker="Bring warmth home">
+    <Section id="shop" title="Ponuda" kicker="Ponesi toplinu kući">
       <div className="grid gap-6 md:grid-cols-3">
         {items.map((it, i) => (
           <motion.div
@@ -498,10 +449,7 @@ function ShopSection() {
 
             <div className="p-5">
               <h4 className="font-serif text-lg text-amber-100">{it.title}</h4>
-              <p className="mt-1 text-sm text-zinc-300">{it.price}</p>
-              <button className="mt-4 inline-flex items-center justify-center rounded-xl bg-gradient-to-br from-amber-600 to-amber-500 px-4 py-2 text-sm font-semibold text-zinc-900 shadow-md shadow-amber-900/30 transition hover:opacity-90">
-                Add to Cart
-              </button>
+              {/* no prices or buy buttons */}
             </div>
           </motion.div>
         ))}
@@ -511,7 +459,6 @@ function ShopSection() {
 }
 
 function Footer() {
-  // Compute once to avoid any render-time differences
   const currentYear = useMemo(() => new Date().getFullYear(), []);
   return (
     <footer className="relative mt-20 border-t border-white/10">
@@ -520,31 +467,15 @@ function Footer() {
           <div>
             <div className="font-serif text-amber-100">Rochester Ginger</div>
             <p className="mt-2 text-sm text-zinc-400">
-              A modern non-alcoholic ginger elixir with Victorian soul.
+              Moderni bezalkoholni eliksir od đumbira sa viktorijanskom dušom.
             </p>
           </div>
           <div className="text-sm text-zinc-300/90">
             <ul className="space-y-1">
-              <li>
-                <a href="#about" className="hover:text-amber-200">
-                  About
-                </a>
-              </li>
-              <li>
-                <a href="#ingredients" className="hover:text-amber-200">
-                  Ingredients
-                </a>
-              </li>
-              <li>
-                <a href="#reviews" className="hover:text-amber-200">
-                  Reviews
-                </a>
-              </li>
-              <li>
-                <a href="#shop" className="hover:text-amber-200">
-                  Shop
-                </a>
-              </li>
+              <li><a href="#about" className="hover:text-amber-200">Priča</a></li>
+              <li><a href="#ingredients" className="hover:text-amber-200">Sastojci</a></li>
+              <li><a href="#reviews" className="hover:text-amber-200">Utisci</a></li>
+              <li><a href="#shop" className="hover:text-amber-200">Ponuda</a></li>
             </ul>
           </div>
           <div className="text-sm text-zinc-300/90">
@@ -553,11 +484,11 @@ function Footer() {
                 Instagram
               </a>
               <a className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 backdrop-blur-md hover:bg-white/10" href="#">
-                Contact
+                Kontakt
               </a>
             </div>
             <p className="mt-3 text-xs text-zinc-500">
-              © {currentYear} Rochester Ginger. All rights reserved.
+              © {currentYear} Rochester Ginger. Sva prava zadržana.
             </p>
           </div>
         </div>
@@ -578,10 +509,7 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section
-      id={id}
-      className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-28"
-    >
+    <section id={id} className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-28">
       <motion.header
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
