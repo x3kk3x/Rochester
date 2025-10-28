@@ -1,11 +1,12 @@
+
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { motion, useScroll, useTransform } from "framer-motion";
+import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
 import dynamic from "next/dynamic";
 import Lenis from "lenis";
 import { Canvas } from "@react-three/fiber";
-import { Float, OrbitControls } from "@react-three/drei";
+import { Float } from "@react-three/drei";
 
 // ✅ Render Spline only on client
 const Spline = dynamic(() => import("@splinetool/react-spline"), { ssr: false });
@@ -34,17 +35,18 @@ export default function RochesterGingerLanding() {
     <main className="min-h-screen bg-[radial-gradient(ellipse_at_top,_#0b0f0d,_#050607)] text-zinc-200 selection:bg-amber-300/30 selection:text-amber-100">
       <BackgroundGlow />
       <Navbar />
-      <Hero3D />            {/* ← reverted to your original, text in SRB */}
-      <AboutSection />      {/* centered, no “Our Story” heading */}
+      <Hero3D />
+      <AboutSection />
       <IngredientsSection />
       <TastingNotesSection />
       <ReviewsSection />
-      <ShopSection />       {/* no prices, no cart buttons */}
+      <ShopSection />
       <Footer />
     </main>
   );
 }
 
+/* =================== NAV =================== */
 function Navbar() {
   return (
     <div className="fixed inset-x-0 top-0 z-50">
@@ -64,7 +66,6 @@ function Navbar() {
               <a href="#reviews" className="hover:text-amber-200">Utisci</a>
               <a href="#shop" className="hover:text-amber-200">Ponuda</a>
             </div>
-            {/* kept minimal right side (no CTA button) */}
             <div className="flex items-center gap-3" />
           </nav>
         </div>
@@ -73,10 +74,7 @@ function Navbar() {
   );
 }
 
-/** --------------------------
- *  HERO — original layout restored
- *  (only copy translated to Serbian)
- *  -------------------------- */
+/* =================== HERO =================== */
 function Hero3D() {
   const containerRef = useRef<HTMLDivElement>(null);
   const { scrollY } = useScroll({ target: containerRef });
@@ -132,7 +130,7 @@ function Hero3D() {
             className="font-serif text-4xl sm:text-5xl md:text-6xl leading-tight text-amber-100 drop-shadow-[0_1px_0_rgba(0,0,0,0.6)]"
           >
             Rochester Ginger:{" "}
-            <span className="text-amber-300">bezalkoholni eliksir</span>{" "}
+            <span className="text-amber-300">Bezalkoholni eliksir</span>{" "}
             đumbira i začina
           </motion.h1>
           <motion.p
@@ -192,8 +190,8 @@ function Hero3D() {
   );
 }
 
+/* =================== ABOUT WITH CAROUSEL =================== */
 function AboutSection() {
-  // heading removed; text centered both axes
   return (
     <section id="about" className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-20">
       <div className="grid gap-8 md:grid-cols-2">
@@ -214,64 +212,177 @@ function AboutSection() {
             </p>
           </div>
         </div>
-        <AboutCanvasCard />
+        <AboutCarouselCard />
       </div>
     </section>
   );
 }
 
-function AboutCanvasCard() {
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+/* === Carousel card component (inline) === */
+function AboutCarouselCard() {
+  const IMAGES = [
+    "/website_1.png",
+    "/website_2.png",
+    "/website_3.png",
+    "/website_4.png",
+    "/website_5.png",
+  ];
+  const TARGET_URL = "https://www.rochesterginger.shop/";
+
+  const [index, setIndex] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const [direction, setDirection] = useState(0); // -1 left, +1 right
+  const autoplayRef = useRef<number | null>(null);
+
+  // Pointer swipe detection
+  const pointerStartX = useRef<number | null>(null);
+  const pointerDeltaX = useRef(0);
+
+  useEffect(() => {
+    startAutoplay();
+    return stopAutoplay;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [index, paused]);
+
+  function startAutoplay() {
+    stopAutoplay();
+    if (paused) return;
+    autoplayRef.current = window.setInterval(() => {
+      move(1);
+    }, 3500);
+  }
+
+  function stopAutoplay() {
+    if (autoplayRef.current) {
+      clearInterval(autoplayRef.current);
+      autoplayRef.current = null;
+    }
+  }
+
+  function move(dir: number) {
+    setDirection(dir);
+    setIndex((i) => (i + dir + IMAGES.length) % IMAGES.length);
+  }
+
+  function goTo(i: number) {
+    setDirection(i > index ? 1 : -1);
+    setIndex(i);
+  }
+
+  function handlePointerDown(e: React.PointerEvent) {
+    pointerStartX.current = e.clientX;
+    (e.target as Element).setPointerCapture?.(e.pointerId);
+  }
+  function handlePointerMove(e: React.PointerEvent) {
+    if (pointerStartX.current == null) return;
+    pointerDeltaX.current = e.clientX - pointerStartX.current;
+  }
+  function handlePointerUp() {
+    if (pointerStartX.current == null) return;
+    const delta = pointerDeltaX.current;
+    pointerStartX.current = null;
+    pointerDeltaX.current = 0;
+    if (delta > 60) move(-1);
+    else if (delta < -60) move(1);
+  }
+
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 p-0 backdrop-blur-xl overflow-hidden shadow-xl shadow-black/30">
-      <div className="relative h-72 md:h-full">
-        {mounted ? (
-          <Canvas camera={{ position: [0, 0, 6], fov: 50 }}>
-            <ambientLight intensity={0.4} />
-            <directionalLight position={[4, 4, 6]} intensity={1.2} />
-            <Float speed={1.2} rotationIntensity={0.6} floatIntensity={0.8}>
-              <GingerKnot />
-            </Float>
-            <OrbitControls enableZoom={false} enablePan={false} autoRotate autoRotateSpeed={0.6} />
-          </Canvas>
-        ) : (
-          <div className="h-full w-full bg-gradient-to-tr from-zinc-900/30 to-amber-900/10" />
-        )}
+    <div
+      className="rounded-2xl border border-white/10 bg-white/5 p-0 backdrop-blur-xl overflow-hidden shadow-xl shadow-black/30"
+      onMouseEnter={() => { setPaused(true); stopAutoplay(); }}
+      onMouseLeave={() => { setPaused(false); startAutoplay(); }}
+    >
+      <div
+        className="relative h-72 md:h-full cursor-pointer select-none"
+        role="button"
+        tabIndex={0}
+        aria-label="Open shop in new tab"
+        onClick={() => window.open(TARGET_URL, "_blank", "noopener,noreferrer")}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { window.open(TARGET_URL, "_blank", "noopener,noreferrer"); } }}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+      >
+        {/* Background weight/texture */}
+        <div
+          aria-hidden
+          className="absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(120% 90% at 50% 10%, rgba(255,229,180,0.10), transparent 60%), radial-gradient(80% 60% at 60% 60%, rgba(255,171,64,0.10), transparent 70%), radial-gradient(70% 60% at 40% 70%, rgba(255,255,255,0.06), transparent 70%), linear-gradient(180deg, rgba(10,10,10,0.7), rgba(10,10,10,0.7))",
+          }}
+        />
+
+        {/* Carousel viewport */}
+        <div className="absolute inset-0 overflow-hidden">
+          <AnimatePresence initial={false} custom={direction}>
+            <motion.img
+              key={index}
+              src={IMAGES[index]}
+              alt={`Site preview ${index + 1}`}
+              draggable={false}
+              initial={{ opacity: 0, x: direction > 0 ? 40 : -40, scale: 1.00 }}
+              animate={{ opacity: 1, x: 0, scale: 1 }}
+              exit={{ opacity: 0, x: direction > 0 ? -30 : 30, scale: 0.98 }}
+              transition={{ duration: 0.5, ease: "easeOut" }}
+              className="absolute inset-0 h-full w-full object-contain object-center scale-99"
+              onError={(e) => {
+                (e.currentTarget as HTMLImageElement).style.display = "none";
+              }}
+            />
+          </AnimatePresence>
+        </div>
+
+        {/* Overlay vignette + label */}
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/10" />
-        <div className="absolute bottom-3 left-3 rounded-lg bg-black/30 px-3 py-1.5 text-xs text-amber-100 backdrop-blur-md ring-1 ring-white/10">
-          3D uživo: Ginger Knot
+        <div className="absolute bottom-3 left-3 rounded-lg bg-black/50 px-2 py-1.5 text-xs text-amber-100 backdrop-blur-md ring-1 ring-white/10">
+          Live: rochesterginger.shop
+        </div>
+
+        {/* Controls */}
+        <div className="absolute inset-y-0 left-3 flex items-center z-20">
+          <button
+            onClick={(e) => { e.stopPropagation(); move(-1); }}
+            className="rounded-full bg-black/30 p-2 backdrop-blur-md ring-1 ring-white/10 text-white/90 hover:bg-black/40"
+            aria-label="Previous preview"
+          >
+            ‹
+          </button>
+        </div>
+        <div className="absolute inset-y-0 right-3 flex items-center z-20">
+          <button
+            onClick={(e) => { e.stopPropagation(); move(1); }}
+            className="rounded-full bg-black/30 p-2 backdrop-blur-md ring-1 ring-white/10 text-white/90 hover:bg-black/40"
+            aria-label="Next preview"
+          >
+            ›
+          </button>
+        </div>
+
+        {/* Indicators */}
+        <div className="absolute left-1/2 bottom-3 z-20 -translate-x-1/2 flex gap-2">
+          {IMAGES.map((_, i) => (
+            <button
+              key={i}
+              onClick={(e) => { e.stopPropagation(); goTo(i); }}
+              aria-label={`Show preview ${i + 1}`}
+              className={`h-2.5 w-8 rounded-full transition ${i === index ? "bg-amber-300" : "bg-white/20 hover:bg-white/30"}`}
+            />
+          ))}
         </div>
       </div>
     </div>
   );
 }
 
-function GingerKnot() {
-  return (
-    <mesh>
-      <torusKnotGeometry args={[1.1, 0.35, 220, 36]} />
-      <meshPhysicalMaterial
-        roughness={0.3}
-        metalness={0.1}
-        transmission={0.1}
-        thickness={0.6}
-        color="#d2a25b"
-        emissive="#3a2a13"
-        emissiveIntensity={0.1}
-        clearcoat={0.6}
-      />
-    </mesh>
-  );
-}
-
+/* =================== INGREDIENTS =================== */
 function IngredientsSection() {
   return (
     <Section id="ingredients" title="Sastojci i proces" kicker="Ukorenjeno u prirodi">
       <div className="grid gap-8 lg:grid-cols-[1.2fr_0.8fr]">
         <div className="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-xl shadow-xl shadow-black/30">
           <ul className="space-y-3 text-zinc-300">
-            <li><span className="text-amber-2 00">•</span> Infuzija svežeg korena đumbira za odlučnu toplinu</li>
+            <li><span className="text-amber-200">•</span> Infuzija svežeg korena đumbira za odlučnu toplinu</li>
             <li><span className="text-amber-200">•</span> Kora limuna i citrusna ulja za podizanje</li>
             <li><span className="text-amber-200">•</span> Grejući začini: karanfilić, cimet, kardamom</li>
             <li><span className="text-amber-200">•</span> Trska šećer za balans — nikad preslatko</li>
@@ -331,6 +442,7 @@ function GingerRootIcon() {
   );
 }
 
+/* =================== NOTES =================== */
 function TastingNotesSection() {
   return (
     <Section id="notes" title="Note ukusa i benefiti" kicker="Toplina koju možeš da osetiš">
@@ -377,6 +489,7 @@ function BenefitTag({ children }: { children: React.ReactNode }) {
   );
 }
 
+/* =================== REVIEWS =================== */
 function ReviewsSection() {
   const reviews = [
     {
@@ -417,6 +530,7 @@ function ReviewsSection() {
   );
 }
 
+
 function ShopSection() {
   const items = [
     { title: "Rochester Ginger 750ml", badge: "Najtraženije", image: "/1.png" },
@@ -449,7 +563,6 @@ function ShopSection() {
 
             <div className="p-5">
               <h4 className="font-serif text-lg text-amber-100">{it.title}</h4>
-              {/* no prices or buy buttons */}
             </div>
           </motion.div>
         ))}
